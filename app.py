@@ -34,7 +34,7 @@ if st.button("Analyze"):
         with st.spinner("Analyzing... Please wait."):
             try:
                 # Call Flask backend (adjust the URL as needed, here assuming local testing)
-                response = requests.post("http://127.0.0.1:8080/analyze", json={"company": company_name.strip()})
+                response = requests.post("http://0.0.0.0:5000/analyze", json={"company": company_name.strip()})
                 
                 # If response code is not 200, show the error message
                 if response.status_code != 200:

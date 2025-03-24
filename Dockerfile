@@ -25,7 +25,10 @@ RUN pip install --upgrade pip && \
 COPY --chown=user . /app/
 
 # Ensure the logs directory exists inside the container
-RUN mkdir -p /app/logs
+RUN mkdir -p /app/logs && \
+    touch /app/supervisord.log && \
+    chmod -R 777 /app
+
 
 # Copy supervisord.conf into the container (adjust paths if needed)
 COPY --chown=user supervisord.conf /etc/supervisord.conf
