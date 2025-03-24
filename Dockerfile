@@ -8,8 +8,8 @@ ENV PYTHONUNBUFFERED=1
 # Create a non-root user with UID 1000 (required by Hugging Face Spaces)
 RUN useradd -m -u 1000 user
 
-# Set the working directory inside the container
-WORKDIR /code
+# Set working directory inside the container
+WORKDIR /app
 
 # Install system dependencies and Supervisor
 RUN apt-get update && \
@@ -22,12 +22,12 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy all project files into the container
-COPY --chown=user . /code/
+COPY --chown=user . /app/
 
-# Ensure the logs directory exists
-RUN mkdir -p /code/logs
+# Ensure the logs directory exists inside the container
+RUN mkdir -p /app/logs
 
-# Copy supervisord.conf from your project root into /etc/ for Supervisor
+# Copy supervisord.conf into the container (adjust paths if needed)
 COPY --chown=user supervisord.conf /etc/supervisord.conf
 
 # Switch to the non-root user
@@ -35,8 +35,8 @@ USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
-# Expose the port used by your frontend (adjust if needed)
+# Expose the port used by your app (adjust if needed)
 EXPOSE 8501
 
-# Command to run Supervisor, which starts both backend and frontend as defined in supervisord.conf
+# Command to run Supervisor, which starts both your backend and frontend as defined in supervisord.conf
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
