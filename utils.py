@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-NUMBER_OF_ARTICLE_PER_SEARCH = 20
+NUMBER_OF_ARTICLE_PER_SEARCH = 35
 NUMBER_OF_UNIQUE_ARTICLES = 20
 
 
