@@ -1,0 +1,30 @@
+version: '0.1'
+services:
+  frontend:
+    build: ./frontend/.
+    networks:
+      - public
+    ports:
+      - 8501:8501
+    volumes:
+      - ./frontend:/app
+
+
+  backend:
+    build: ./backend/.
+    networks:
+      - public
+    secrets:
+      - backend_secrets  
+    volumes:
+      - ./backend:/app
+    ports:
+      - 5000:5000
+    
+networks:
+  public:
+
+secrets:
+  backend_secrets:
+    file: ./backend/backend_secrets.json
+
