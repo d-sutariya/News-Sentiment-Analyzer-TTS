@@ -81,8 +81,10 @@ if st.button("Analyze"):
 
                     # Audio playback (if available)
                     if result.get("Audio",""):
+                        print(result.get("Audio"))
                         st.subheader("Hindi Audio Summary")
-                        st.audio(result["Audio"], format="audio/mp3")
+                        audio_file_name = result.get("Audio") 
+                        st.audio(f"audio_data/{audio_file_name}", format="audio/mp3")
                     
                     if result.get("Hindi Summary"):
                         st.subheader("Sentiment Analysis in HIndi")

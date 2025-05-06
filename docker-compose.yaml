@@ -8,6 +8,7 @@ services:
       - 8501:8501
     volumes:
       - ./frontend:/app
+      - audio_data:/app/audio_data
 
 
   backend:
@@ -18,6 +19,7 @@ services:
       - backend_secrets  
     volumes:
       - ./backend:/app
+      - audio_data:/app/audio_data
     ports:
       - 5000:5000
     
@@ -27,4 +29,7 @@ networks:
 secrets:
   backend_secrets:
     file: ./backend/backend_secrets.json
+
+volumes:
+  audio_data:
 

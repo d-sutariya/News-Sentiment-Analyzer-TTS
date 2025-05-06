@@ -1,5 +1,9 @@
 FROM python:3.10-slim-bullseye AS builder
 
+RUN groupadd -r non_root_users
+
+RUN useradd -r user1
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,10 +15,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY /app.py /app/
 
-# FROM python:3.10-slim-bullseye
-# WORKDIR /app
 
-# COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-# COPY --from=builder /app/* .
+RUN mkdir audio_data
+RUN chown -R user1:non_root_users /app
 
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+USER user1
+
+HEALTHCHECK CMD nc -z localhost 8501 || exit 1
+
+ENTRYPOINT ["streamlit","run","app.py","--server.port","8501"]

@@ -1,5 +1,4 @@
 import os
-import base64
 import json
 from collections import OrderedDict
 from flask import Flask, request, jsonify, Response
@@ -10,9 +9,17 @@ from utils import (
     ComparativeAnalysisAgent,
     get_company_articles
 )
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/',methods=['GET','POST'])
+def ping():
+    return jsonify({"sucess":"true"}) , 200
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -93,7 +100,8 @@ def analyze():
 
     # --- Prepare audio in static folder if available ---
     audio_filename = f"{company.lower().replace(' ', '_')}_hindi_audio.mp3"
-    audio_dir_path = os.path.join("static", "audio")
+    audio_dir_path = os.path.join("audio_data")
+
     if not os.path.exists(audio_dir_path):
         os.makedirs(audio_dir_path, exist_ok=True)
     audio_path = os.path.join(audio_dir_path, audio_filename)
@@ -102,26 +110,25 @@ def analyze():
         # Save the audio file and generate a URL
         with open(audio_path, "wb") as audio_file:
             audio_file.write(comp_agent.hindi_audio)
-        audio_url = f"{request.host_url}static/audio/{audio_filename}"
         audio_message = "Audio generated successfully"
     else:
         # If audio generation fails, use the Hindi text summary
-        audio_url = comp_agent.hindi_summary or "No audio available"
-        audio_message = "Audio generation failed; using Hindi summary text"
-    
+        audio_filename = comp_agent.hindi_summary or "No audio available"
+        audio_message = "Audio generation failed using Hindi summary text"
+        
+    logger.info("the audio_filename is : %s",audio_filename)
     # --- Build final ordered response ---
     final_response = OrderedDict([
         ("Company", company),
         ("Articles", articles),
         ("Comparative Sentiment Score", comp_agent.compartive_data.get("Comparative Sentiment Score", {})),
         ("Final Sentiment Analysis", comp_agent.final_analysis),
-        ("Audio", audio_url),
+        ("Audio", audio_filename),
         ("Audio Message", audio_message)
     ])
 
     response_json = json.dumps(final_response, ensure_ascii=False, indent=4)
     return Response(response_json, mimetype="application/json")
-
 
 if __name__ == "__main__":
     # Bind to 0.0.0.0 so that the app is accessible externally (e.g., in Docker)

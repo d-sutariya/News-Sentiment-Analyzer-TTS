@@ -58,7 +58,8 @@ def get_company_articles(search_queries: List[str]):
     search_tool = TavilySearchResults(
         max_results=NUMBER_OF_ARTICLE_PER_SEARCH,
         search_depth="advanced",
-        topic="news"
+        topic="news",
+        tavily_api_key = secrets["TAVILY_API_KEY"]
     )
     news_articles = []
     for query in search_queries:
@@ -463,21 +464,18 @@ class ComparativeAnalysisAgent:
                 #     }
                 # }
                 # response = requests.post(API_URL, headers=headers, json=payload)
-                
-                response =self.gemini_flash_llm.invoke([
-                    SystemMessage(content="Give the hindi text of the below content. Strictly your response should be in hindi language"),
-                    HumanMessage(content=self.compartive_data["Comparative Sentiment Score"]["Coverage Differences"][0]["Comparison"])
-                ])
-
-                if response.status_code != 200:
-                    logger.error("Translation error: %s", response.content)
-                    logger.error("Response Status code is: %s",response.status_code)
+                try:
+                    response = self.gemini_flash_llm.invoke([
+                        SystemMessage(content="Give the hindi text of the below content. Strictly your response should be in hindi language. Strictly don't use any english word or number as i am using hindi parser"),
+                        HumanMessage(content=self.compartive_data["Comparative Sentiment Score"]["Coverage Differences"][0]["Comparison"])
+                    ])
+                except Exception as e:
                     return {
-                        "message": [AIMessage(content=f"Error while translating: {response.content}")],
-                        "status_code": [response.status_code]
+                        "message": [AIMessage(content=f"Error while translating: {e}")],
+                        "status_code": [503]
                     }
                 else:
-                    translation = response.json()[0]["translation_text"]
+                    translation = response.content
                     logger.info("Translation successful: %s", translation)
                     self.hindi_summary = translation
             except Exception as e:
@@ -488,7 +486,7 @@ class ComparativeAnalysisAgent:
                 }
             return {
                 "message": [AIMessage(content="Translated to Hindi")],
-                "status_code": [response.status_code]
+                "status_code": [200]
             }
         else:
             logger.warning("Skipping translation due to previous error status")
@@ -500,11 +498,25 @@ class ComparativeAnalysisAgent:
         """
         if state["status_code"][-1] == 200:
             try:
-                API_URL = "https://router.huggingface.co/hf-inference/models/facebook/mms-tts-hin"
-                headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_KEY')}"}
-                payload = {"inputs": self.hindi_summary}
-                response = requests.post(API_URL, headers=headers, json=payload)
-                if response.status_code != 200:
+                # API_URL = "https://router.huggingface.co/hf-inference/models/facebook/mms-tts-hin"
+                # headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_KEY')}"}
+                # payload = {"inputs": self.hindi_summary}
+                # response = requests.post(API_URL, headers=headers, json=payload)
+                polly_client = boto3.client(
+                    'polly',
+                    region_name=secrets["AWS_REGION"],
+                    aws_access_key_id=secrets["AWS_ACCESS_KEY"], 
+                    aws_secret_access_key=secrets["AWS_SECRET_KEY"]
+                )
+                response = polly_client.synthesize_speech(
+                    Engine = "standard",
+                    LanguageCode = "hi-IN",
+                    OutputFormat = "mp3",
+                    Text = self.hindi_summary,
+                    VoiceId = "Aditi"
+                )
+                status_code = response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+                if status_code != 200:
                     logger.error("Audio generation error: %s", response.content)
                     logger.error("Response code is ",response.status_code)
                     return {
@@ -512,7 +524,7 @@ class ComparativeAnalysisAgent:
                         "status_code": [response.status_code]
                     }
                 else:
-                    self.hindi_audio = response.content
+                    self.hindi_audio = response["AudioStream"].read()
                     logger.info("Audio generation successful")
             except Exception as e:
                 logger.error("Exception in audio generation: %s", e)
@@ -523,7 +535,7 @@ class ComparativeAnalysisAgent:
             
             return {
                 "message": [AIMessage(content="Speech generated successfully")],
-                "status_code": [response.status_code]
+                "status_code": [status_code]
             }
         else:
             logger.warning("Skipping audio generation due to previous error status")
